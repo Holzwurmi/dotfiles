@@ -1,0 +1,24 @@
+snippet article
+abbr <long article header...>
+options head
+    \`\`\`_article_info_
+    > author
+    ${1:greenlad}
+    > date
+    ${2:`strftime("%m-%d-%y %T")`}${3:auto}
+    > indraft
+    ${4:true}
+    > online
+    ${5:true}
+    > revisions
+    ${6:1}
+    > tags
+    ${7:#:article tags}
+    > title
+    ${8:#:article title}
+    > Description
+    ${9:#:article description}
+    \`\`\`
+
+    # $8
+    ${0}

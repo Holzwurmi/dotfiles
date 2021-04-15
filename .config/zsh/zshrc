@@ -1,0 +1,160 @@
+# zsh behaviour
+	ZSH_DISABLE_COMPFIX="true"
+	HYPHEN_INSENSITIVE="true"
+	ENABLE_CORRECTION="false"
+	DISABLE_AUTO_UPDATE="true"
+	DISABLE_AUTO_TITLE="true"
+	HYPHEN_INSENSITIVE="true"
+	CASE_SENSITIVE="false"
+	unsetopt correct_all
+	unsetopt correct
+
+plugins=(
+  git
+)
+
+# theme
+	ZSH_THEME="kardan"
+	# ZSH_THEME="random"
+	ZSH_THEME_RANDOM_CANDIDATES=( \ 
+		"bureau" \
+		"kardan" \
+		"eastwood" \
+		"terminalparty_edited" \
+		"simple" \
+		"fishy" \
+		"kolo" \
+		"wezm" )
+
+# cursor
+	# source: https://unix.stackexchange.com/questions/433273/changing-cursor-style-based-on-mode-in-both-zsh-and-vim
+	function zle-keymap-select {
+		if [[ ${KEYMAP} == vicmd ]] ||
+			[[ $1 = 'block' ]]; then
+				echo -ne '\e[1 q'
+
+			elif [[ ${KEYMAP} == main ]] ||
+				[[ ${KEYMAP} == viins ]] ||
+				[[ ${KEYMAP} = '' ]] ||
+				[[ $1 = 'beam' ]]; then
+						echo -ne '\e[5 q'
+		fi
+	}
+	zle -N zle-keymap-select
+
+	# Use beam shape cursor on startup.
+	echo -ne '\e[5 q'
+
+	# Use beam shape cursor for each new prompt.
+	precmd() {
+		echo -ne '\e[5 q'
+	}
+
+# functions
+	function cd {
+		builtin cd "$@" && ls --color=auto 
+	}
+
+	function handwriting {
+		binpath="$HOME/bin"
+		sourceUrl="http://www.styluslabs.com/download/write-tgz"
+		gzipPath="$binpath/write.tar.gz"
+		exePath="$binpath/Write/Write"
+		if [ ! -x "$exePath" ]; then
+			if [ ! -d $binpath ]; then
+				mkdir "$binpath"
+			fi
+			cd $binpath > /dev/null
+			curl -L "$sourceUrl" -o "$gzipPath"
+			gunzip "$gzipPath"
+			tar -xf "${gzipPath%.gz}"
+		fi
+		$exePath $@ &!
+	}
+
+	# Adds the first parameter to the PATH env, if 
+		# - it is a valid path
+		# - contains at least one executable
+		# - is a path without an underscore before any folder in the path
+	function AddToPathIfExists {
+		function PathEnvNotContainsPath {
+			echo $PATH | grep ":$1:" &> /dev/null || \
+				echo $PATH | grep -E "^$1:" &> /dev/null || \
+				echo $PATH | grep -E ":$1$" &> /dev/null || \
+				echo $PATH | grep -E "^$1$" &> /dev/null || \
+				return 0
+			return 1
+		}
+
+		function IsIncludedDir {
+			echo "$1" | grep -ve '\/_'
+		}
+
+		function DirContainsExecutable {
+			$(ls -F "$1" | grep '*$' &> /dev/null) || return 1
+		}
+
+		[ -d "$1" ] || return
+		i=$(realpath $1)
+		[ -n "$(IsIncludedDir $i)" ] && \
+			PathEnvNotContainsPath "$i" && \
+			DirContainsExecutable "$i" && \
+			export PATH="$i:$PATH"
+	}
+
+	function AddToPathSubDirs {
+		[ -d "$1" ] || return
+
+		# using realpath to remove potential training slash
+		for i in $(ls -d $(realpath $1)/**/ | grep -ve "\/_"); do
+			AddToPathIfExists "$i"
+		done
+	}
+
+	function escapeLine() {
+		charactersToEscape=('\' '"' '$' '!' '`')
+		terminalLine="$BUFFER"
+		for char in "${charactersToEscape[@]}"; do
+			i=1
+			split=("${(@ps/$char/)terminalLine}")
+			terminalLine="${split[$i]}"
+			while [ $i -lt ${#split} ]; do
+				i=$((i+1))
+				terminalLine+="\\${char}${split[$i]}"
+			done
+		done
+		BUFFER="\"$terminalLine\""
+	}
+
+# enviornment variables
+	editor="/usr/bin/nvim"
+	export TERM="xterm"
+
+	$(which "go" &> /dev/null) && {
+		goWorkspace="$HOME/goWorkspace"
+		GOPATH="$(go env GOPATH)"
+		if [ -d "$goWorkspace" ]; then
+			GOPATH+=":$goWorkspace"
+		fi
+		export GOPATH
+	}
+	AddToPathIfExists "/usr/local/bin"
+	AddToPathSubDirs "$HOME/bin"
+
+	export XDG_CONFIG_HOME="$HOME/.config"
+	export ZSH="$XDG_CONFIG_HOME/zsh/oh-my-zsh"
+	# for visudo
+	export SUDO_EDITOR="$editor"
+	# for systemd
+	export EDITOR="$editor"
+	# for user service units like geoclue-agent
+	export XDG_RUNTIME_DIR="/run/user/$UID"
+	export DBUS_SESSION_DBUS_ADDRESS="unix:path=${XDG_RUNTIME_DIR}/bus"
+
+# mappings
+	zle -N escapeLine
+	bindkey -M vicmd '^e' escapeLine
+
+test -d cur && cd -P cur &> /dev/null
+source $ZSH/oh-my-zsh.sh
+bindkey -v
