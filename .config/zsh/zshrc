@@ -156,5 +156,12 @@ plugins=(
 	bindkey -M vicmd '^e' escapeLine
 
 test -d cur && cd -P cur &> /dev/null
-source $ZSH/oh-my-zsh.sh
+if [ ! -d "$ZSH" ]; then
+	pathInstall="$XDG_CONFIG_HOME/zsh/install.sh"
+	curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh --output "$pathInstall"
+	ZSH="$ZSH" sh "$pathInstall"
+fi
+
+source "$ZSH/oh-my-zsh.sh"
 bindkey -v
+setxkbmap -option caps:swapescape

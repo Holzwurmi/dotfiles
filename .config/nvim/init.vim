@@ -12,7 +12,7 @@
 			Plug 'https://github.com/Shougo/neosnippet.vim'
 			Plug 'https://github.com/tpope/vim-commentary'
 			Plug 'https://github.com/tpope/vim-fugitive'
-			Plug 'https://github.com/Holzwurmi/vim-misc'
+			Plug 'https://github.com/greenlad0/vim-misc'
 		call plug#end()
 	endif
 
