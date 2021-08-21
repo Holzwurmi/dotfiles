@@ -12,7 +12,9 @@
 			Plug 'https://github.com/Shougo/neosnippet.vim'
 			Plug 'https://github.com/tpope/vim-commentary'
 			Plug 'https://github.com/tpope/vim-fugitive'
-			Plug 'https://github.com/greenlad0/vim-misc'
+			Plug 'https://github.com/junegunn/fzf', { 'do': { -> fzf#install() } }
+			Plug 'https://github.com/junegunn/fzf.vim'
+			exec "Plug '" . s:pluginFolder . "/vim-misc'"
 		call plug#end()
 	endif
 
@@ -84,6 +86,7 @@
 		\ col(".") == 1 ? '<C-\><C-N><C-\><C-N>' : '<backspace>'
 
 " maps
+	let mapleader = ","
 	noremap <leader>. :s::g<Left><Left>
 	noremap <leader>w :%s:\(<c-r>=expand("<cword>")<cr>\)::g<Left><Left>
 	noremap <leader>% :%s::g<Left><Left>
@@ -120,3 +123,31 @@
 		\ fnamemodify($MYVIMRC, ":p:h") . "/snippets"
 	let g:neosnippet#disable_runtime_snippets = {'_':1}
 	nnoremap <leader>s :NeoSnippetEdit -vertical -split<Cr>
+
+" fzf
+	function! s:openFzfResultOfGrepInput(word)
+		let s:actionMap = {
+		\ 	'': 'edit',
+		\ 	'ctrl-v': 'vsplit',
+		\ 	'ctrl-s': 'split',
+		\ 	'ctrl-t': 'tab split'
+		\ }
+		let s:file = substitute(a:word[1], '\:.*', "", "")
+		let s:lineNumber = substitute(a:word[1], '.\{-}\:', "", "")
+		let s:lineNumber = substitute(s:lineNumber, '\:.*', "", "")
+		let s:key = a:word[0]
+
+		exec s:actionMap[s:key] . " +" . s:lineNumber . " " . s:file
+	endfunction
+
+	command! -bang -complete=dir -nargs=? ED 
+		\ call fzf#run(
+		\	{
+		\		'source': 'grep --line-buffered --color=never -n -r "" *',
+		\		'sink*': function('s:openFzfResultOfGrepInput'),
+		\		'options': "--expect=ctrl-v,ctrl-s,ctrl-t",
+		\		'window': {'width': 0.9, 'height': 0.6}
+		\ 	}, <bang>0
+		\ )
+
+	nnoremap <leader>f :ED<CR>
